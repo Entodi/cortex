@@ -11,6 +11,8 @@ import torch.nn.functional as F
 from cortex.built_ins.networks.fully_connected import FullyConnectedNet
 from .utils import update_encoder_args
 
+from sklearn.metrics import f1_score
+
 
 class SimpleClassifier(ModelPlugin):
     '''Build a simple feed-forward classifier.
@@ -22,7 +24,7 @@ class SimpleClassifier(ModelPlugin):
         train=dict(epochs=200, save_on_best='losses.classifier'),
         classifier_args=dict(dropout=0.2))
 
-    def build(self, dim_in: int=None, classifier_args=dict(dim_h=[200, 200])):
+    def build(self, model_name=None, dim_in: int=None, classifier_args=dict(dim_h=[200, 200])):
         '''
 
         Args:
@@ -30,6 +32,7 @@ class SimpleClassifier(ModelPlugin):
             classifier_args: Extra arguments for building the classifier
 
         '''
+        self.model_name = model_name or 'x'
         dim_l = self.get_dims('labels')
         classifier = FullyConnectedNet(dim_in, dim_out=dim_l, **classifier_args)
         self.nets.classifier = classifier
@@ -55,10 +58,13 @@ class SimpleClassifier(ModelPlugin):
         if labeled.sum() > 0:
             correct = 100. * (labeled * predicted.eq(
                 targets.data).float()).cpu().sum() / labeled.cpu().sum()
-            self.results.accuracy = correct
+            if self.model_name:
+                self.results['{}_accuracy'.format(self.model_name)] = correct.item()
+                self.results['{}_f1_macro'.format(self.model_name)] = f1_score(predicted.cpu(), targets.cpu(), average='macro')  
+            else:
+                self.results['accuracy']  = correct
             self.losses.classifier = loss
-
-        self.results.perc_labeled = labeled.mean()
+        self.results.perc_labeled = labeled.mean().item()
 
     def predict(self, inputs):
         classifier = self.nets.classifier
@@ -107,9 +113,9 @@ class SimpleAttributeClassifier(SimpleClassifier):
         correct = 100. * predicted.eq(attributes.data).cpu().sum(0) / attributes.size(0)
 
         self.losses.classifier = loss
-        self.results.accuracy = dict(mean=correct.float().mean(),
-                                     max=correct.max(),
-                                     min=correct.min())
+        self.results.accuracy = dict(mean=correct.float().mean().item(),
+                                     max=correct.max().item(),
+                                     min=correct.min().item())
 
     def predict(self, inputs):
         classifier = self.nets.classifier
@@ -152,7 +158,6 @@ class ImageClassification(SimpleClassifier):
         Encoder_, args = update_encoder_args(
             shape, model_type=classifier_type, encoder_args=classifier_args)
         Encoder = Encoder or Encoder_
-
         args.update(**classifier_args)
 
         classifier = Encoder(shape, dim_out=dim_l, **args)
