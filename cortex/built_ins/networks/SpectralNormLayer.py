@@ -21,6 +21,21 @@ def sn_weight(weight, u, height, n_power_iterations):
     return torch.div(weight, sigma), u
 
 
+class SNConv3d(nn.Conv3d):
+    def __init__(self, *args, n_power_iterations=1, **kwargs):
+        super(SNConv2d, self).__init__(*args, **kwargs)
+        self.n_power_iterations = n_power_iterations
+        self.height = self.weight.shape[0]
+        self.register_buffer(
+            'u', l2normalize(self.weight.new_empty(self.height).normal_(0, 1)))
+
+    def forward(self, input):
+        w_sn, self.u = sn_weight(self.weight, self.u, self.height,
+                                 self.n_power_iterations)
+        return F.conv3d(input, w_sn, self.bias, self.stride,
+                        self.padding, self.dilation, self.groups)
+
+
 class SNConv2d(nn.Conv2d):
     def __init__(self, *args, n_power_iterations=1, **kwargs):
         super(SNConv2d, self).__init__(*args, **kwargs)

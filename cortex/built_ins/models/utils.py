@@ -91,10 +91,11 @@ def ms_ssim(X_a, X_b, window_size=11, size_average=True, C1=0.01**2, C2=0.03**2)
         return ssim_map.mean(1).mean(1).mean(1)
 
 
-resnet_encoder_args_ = dict(dim_h=64, batch_norm=True, f_size=3, n_steps=3)
+resnet_encoder_args_ = dict(dim_h=64, batch_norm=True, n_steps=3)
 mnist_encoder_args_ = dict(dim_h=64, batch_norm=True, f_size=5,
                            pad=2, stride=2, min_dim=7)
 convnet_encoder_args_ = dict(dim_h=64, batch_norm=True, n_steps=3)
+vol_convnet_encoder_args_ = dict(dim_h=32, batch_norm=True, n_steps=3, f_size=3, stride=1)
 
 
 def update_encoder_args(x_shape, model_type='convnet', encoder_args=None):
@@ -105,6 +106,9 @@ def update_encoder_args(x_shape, model_type='convnet', encoder_args=None):
     elif model_type == 'convnet':
         from cortex.built_ins.networks.convnets import SimpleConvEncoder as Encoder
         encoder_args_ = {k: v for k, v in convnet_encoder_args_.items()}
+    elif model_type == 'vol_convnet':
+        from cortex.built_ins.networks.conv_vol_encoders import SimpleVolConvEncoder as Encoder
+        encoder_args_ = {k: v for k, v in vol_convnet_encoder_args_.items()}
     elif model_type == 'mnist':
         from cortex.built_ins.networks.convnets import SimpleConvEncoder as Encoder
         encoder_args_ = {k: v for k, v in mnist_encoder_args_.items()}
@@ -152,10 +156,11 @@ def update_encoder_args(x_shape, model_type='convnet', encoder_args=None):
     return Encoder, encoder_args_
 
 
-resnet_decoder_args_ = dict(dim_h=64, batch_norm=True, f_size=3, n_steps=3)
+resnet_decoder_args_ = dict(dim_h=64, batch_norm=True, n_steps=3)
 mnist_decoder_args_ = dict(dim_h=64, batch_norm=True, f_size=4,
                            pad=1, stride=2, n_steps=2)
 convnet_decoder_args_ = dict(dim_h=64, batch_norm=True, n_steps=3)
+vol_convnet_decoder_args_ = dict(dim_h=16, batch_norm=True, n_steps=3, f_size=4)
 
 
 def update_decoder_args(x_shape, model_type='convnet', decoder_args=None):
@@ -168,6 +173,10 @@ def update_decoder_args(x_shape, model_type='convnet', decoder_args=None):
         from cortex.built_ins.networks.conv_decoders import (
             SimpleConvDecoder as Decoder)
         decoder_args_ = {k: v for k, v in convnet_decoder_args_.items()}
+    elif model_type == 'vol_convnet':
+        from cortex.built_ins.networks.conv_vol_decoders import (
+            SimpleVolConvDecoder as Decoder)
+        decoder_args_ = {k: v for k, v in vol_convnet_decoder_args_.items()}
     elif model_type == 'mnist':
         from cortex.built_ins.networks.conv_decoders import (
             SimpleConvDecoder as Decoder)
