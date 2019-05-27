@@ -1,0 +1,31 @@
+self.models = nn.Sequential(
+            nn.Conv3d(dim_in, 64, kernel_size=5, stride=2, padding=0),
+            nn.BatchNorm3d(64),
+            nn.ReLU( inplace=True),
+            nn.AvgPool3d(kernel_size=3, stride=3),
+
+            nn.Conv3d(64, 128, kernel_size=3, stride=1, padding=0),
+            nn.BatchNorm3d(128),
+            nn.ReLU( inplace=True),
+            nn.AvgPool3d(kernel_size=3, stride=3),
+
+            nn.Conv3d(128, 192, kernel_size=3, padding=1),
+            nn.BatchNorm3d(192),
+            nn.ReLU(inplace=True),
+
+            nn.Conv3d(192, 192, kernel_size=3, padding=1),
+            nn.BatchNorm3d(192),
+            nn.ReLU( inplace=True),
+
+            nn.Conv3d(192, 128, kernel_size=3, padding=1),
+            nn.BatchNorm3d(128),
+            nn.ReLU( inplace=True),
+            nn.AvgPool3d(kernel_size=2, stride=2),
+        )
+       
+        self.models.add_module('view', View(-1, 1536))
+        self.models.add_module('fc1', nn.Linear(1536, 512))
+        self.models.add_module('fc1bn', nn.BatchNorm1d(512))
+        self.models.add_module('fc1relu', nn.ReLU(inplace=True))
+        #self.models.add_module('fc1dp', nn.Dropout(p=0.25))
+        self.models.add_module('fc2', nn.Linear(512, dim_out))

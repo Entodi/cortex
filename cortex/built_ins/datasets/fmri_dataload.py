@@ -111,10 +111,11 @@ class ImageFolder(data.Dataset):
         path, target = self.imgs[index]
         img = torch.FloatTensor(self.loader(path))
         img = (img - img.min()) / (img.max() - img.min())
-        '''
+        
         if self.transform is not None:
-            print (self.transform)
+            #print (self.transform)
             img = self.transform(img)
+        '''
         if self.target_transform is not None:
             target = self.target_transform(target)
         '''

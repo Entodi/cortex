@@ -8,6 +8,9 @@ from progressbar import Bar, ProgressBar, Percentage, Timer, ETA
 from .noise import get_noise_var
 from .. import exp
 
+import numpy as np
+import random
+
 __author__ = 'R Devon Hjelm'
 __author_email__ = 'erroneus@gmail.com'
 
@@ -57,11 +60,19 @@ class DataHandler:
                 self.batch_size = {k: self.batch_size_}
                 batch_size = self.batch_size_
 
+            def worker_init_fn(x):
+                seed = (int(torch.initial_seed()) + x) % (2**32-1)
+                np.random.seed(seed)
+                random.seed(seed)
+                torch.manual_seed(seed)
+                signal.signal(signal.SIGINT, signal.SIG_IGN)
+               
+            if k == 'test':
+                shuffle = False
+                print ('Shuffle for {} is set to be False'.format(k))
             loaders[k] = DataLoader(dataset, batch_size=batch_size,
                                     shuffle=shuffle, num_workers=n_workers,
-                                    worker_init_fn=lambda x:
-                                    signal.signal(signal.SIGINT,
-                                                  signal.SIG_IGN))
+                                    worker_init_fn=lambda x: worker_init_fn(x))
 
         self.dims[source] = dataset_entrypoint._dims
         self.input_names[source] = dataset_entrypoint._input_names
@@ -96,6 +107,7 @@ class DataHandler:
         for source in sources:
             data = next(self.iterators[source])
             if data[0].size()[0] < batch_size:
+                print (data[0].size()[0], batch_size)
                 if self.skip_last_batch:
                     raise StopIteration
                 batch_size = data[0].size()[0]

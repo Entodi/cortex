@@ -8,7 +8,7 @@ class ImageEncoder(ModelPlugin):
     def build(self,
               dim_out=None,
               encoder_type: str = 'convnet',
-              encoder_args=dict(fully_connected_layers=1028),
+              encoder_args=dict(fully_connected_layers=1024),
               Encoder=None):
         x_shape = self.get_dims('x', 'y', 'c')
         Encoder_, encoder_args = update_encoder_args(

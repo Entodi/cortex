@@ -22,7 +22,7 @@ def infer_conv_size(w, k, s, p):
 class SimpleConvDecoder(BaseNet):
     def __init__(self, shape, dim_in=None, initial_layer=None, dim_h=64,
                  nonlinearity='ReLU', output_nonlinearity=None,
-                 f_size=4, stride=2, pad=1, n_steps=3, **layer_args):
+                 f_size=4, stride=2, pad=1, n_steps=4, **layer_args):
         super(SimpleConvDecoder, self).__init__(
             nonlinearity=nonlinearity, output_nonlinearity=output_nonlinearity)
 

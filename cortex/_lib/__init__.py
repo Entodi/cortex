@@ -120,6 +120,7 @@ def setup_experiment(args, model=None, testmode=False):
     else:
         if args.load_networks:
             d = exp.reload_model(args.load_networks)
+            #keys = args.networks_to_reload[0].split(',,') or d['nets']
             keys = args.networks_to_reload or d['nets']
             for key in keys:
                 if key not in d['nets']:

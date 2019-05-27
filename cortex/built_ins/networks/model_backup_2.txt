@@ -1,0 +1,48 @@
+from cortex.built_ins.networks.base_network import BaseNet
+from cortex.built_ins.networks.modules import View
+import torch.nn as nn
+
+class AlexNet(BaseNet):
+    def __init__(self, shape, dim_out=None, dim_h=None,
+                 nonlinearity='ReLU', output_nonlinearity=None, n_steps=None, **layer_args):       
+        super(AlexNet, self).__init__(
+            nonlinearity=nonlinearity, output_nonlinearity=output_nonlinearity)
+
+        dim_in = shape[-1]
+        self.models = nn.Sequential(
+            nn.Conv3d(dim_in, 64, kernel_size=5, stride=2, padding=0),
+            nn.BatchNorm3d(64),
+            nn.ReLU( inplace=True),
+            nn.AvgPool3d(kernel_size=3, stride=3),
+
+            nn.Conv3d(64, 128, kernel_size=3, stride=1, padding=0),
+            nn.BatchNorm3d(128),
+            nn.ReLU( inplace=True),
+            nn.AvgPool3d(kernel_size=3, stride=3),
+
+            nn.Conv3d(128, 192, kernel_size=3, padding=1),
+            nn.BatchNorm3d(192),
+            nn.ReLU(inplace=True),
+
+            nn.Conv3d(192, 192, kernel_size=3, padding=1),
+            nn.BatchNorm3d(192),
+            nn.ReLU( inplace=True),
+
+            nn.Conv3d(192, 128, kernel_size=3, padding=1),
+            nn.BatchNorm3d(128),
+            nn.ReLU( inplace=True),
+            nn.AvgPool3d(kernel_size=2, stride=2),
+        )
+       
+        self.models.add_module('view', View(-1, 1536))
+        self.models.add_module('fc1', nn.Linear(1536, 512))
+        self.models.add_module('fc1bn', nn.BatchNorm1d(512))
+        self.models.add_module('fc1relu', nn.ReLU(inplace=True))
+        #self.models.add_module('fc1dp', nn.Dropout(p=0.25))
+        self.models.add_module('fc2', nn.Linear(512, dim_out))
+
+        for m in self.models.modules():
+            if isinstance(m, nn.Conv3d) or isinstance(m, nn.Linear):
+                nn.init.orthogonal_(m.weight, gain=nn.init.calculate_gain('relu'))
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0.)

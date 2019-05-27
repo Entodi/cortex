@@ -210,12 +210,8 @@ def main_loop(model, epochs=500, archive_every=10, save_on_best=None,
         viz.visualizer.text(info, env=exp.NAME, win='info')
     total_time = 0.
     if eval_only:
-        test_results, test_std = test_epoch(
-            'Testing', eval_mode=True, mode=test_mode)
-        convert_to_numpy(test_results)
-        convert_to_numpy(test_std)
-
-        display_results(test_results, test_std, 'Evaluation', None, None, None)
+        test_results = test_epoch(model, 0)
+        print(test_results)
         exit(0)
     best = None
     if not isinstance(epochs, int):

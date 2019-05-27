@@ -12,6 +12,25 @@ from cortex.built_ins.networks.fully_connected import FullyConnectedNet
 from .utils import update_encoder_args
 
 from sklearn.metrics import f1_score
+from sklearn.metrics import balanced_accuracy_score
+
+
+def L1_regularization(model, reg = 1e-6):
+    # https://github.com/kevinzakka/pytorch-goodies
+    l1_loss = 0
+    for name, param in model.named_parameters():
+        if 'bias' not in name:
+            l1_loss = l1_loss + (reg * torch.sum(torch.abs(param)))
+    return l1_loss
+
+
+def L2_regularization(model, reg = 1e-6):
+    # https://github.com/kevinzakka/pytorch-goodies
+    l2_loss = 0
+    for name, param in model.named_parameters():
+        if 'bias' not in name:
+            l2_loss = l2_loss + (0.5 * reg * torch.sum(torch.pow(param, 2)))
+    return l2_loss
 
 
 class SimpleClassifier(ModelPlugin):
@@ -24,7 +43,8 @@ class SimpleClassifier(ModelPlugin):
         train=dict(epochs=200, save_on_best='losses.classifier'),
         classifier_args=dict(dropout=0.2))
 
-    def build(self, model_name=None, dim_in: int=None, classifier_args=dict(dim_h=[200, 200])):
+    def build(self, model_name=None, dim_in: int=None, classifier_args=dict(dim_h=[200, 200]),
+         l1_regularization=False, l2_regularization=False):
         '''
 
         Args:
@@ -32,6 +52,8 @@ class SimpleClassifier(ModelPlugin):
             classifier_args: Extra arguments for building the classifier
 
         '''
+        self.l1_regularization = l1_regularization
+        self.l2_regularization = l2_regularization
         self.model_name = model_name or 'x'
         dim_l = self.get_dims('labels')
         classifier = FullyConnectedNet(dim_in, dim_out=dim_l, **classifier_args)
@@ -39,6 +61,9 @@ class SimpleClassifier(ModelPlugin):
 
     def routine(self, inputs, targets,
                 criterion=nn.CrossEntropyLoss(reduce=False)):
+                #criterion=nn.CrossEntropyLoss(
+                #    reduce=False, weight=torch.FloatTensor(
+                #        [[[0.34206471, 0.85824345, 0.90909091, 0.89060092]]]).cuda())):
         '''
 
         Args:
@@ -46,23 +71,37 @@ class SimpleClassifier(ModelPlugin):
 
         '''
         classifier = self.nets.classifier
-
+        
         outputs = classifier(inputs)
+        #print (outputs.size())
         predicted = torch.max(F.log_softmax(outputs, dim=1).data, 1)[1]
 
         unlabeled = targets.eq(-1).long()
         losses = criterion(outputs, (1 - unlabeled) * targets)
         labeled = 1. - unlabeled.float()
         loss = (losses * labeled).sum() / labeled.sum()
+        if self.l1_regularization:
+            l1_loss = L1_regularization(classifier)
+            #self.results.l1_loss = l1_loss
+            loss = loss + l1_loss
+        if self.l2_regularization:
+            l2_loss = L2_regularization(classifier)
+            #self.results.l2_loss = l2_loss
+            loss = loss + l2_loss
+       
+
+        bacc = balanced_accuracy_score (targets.cpu(), predicted.cpu())
 
         if labeled.sum() > 0:
             correct = 100. * (labeled * predicted.eq(
                 targets.data).float()).cpu().sum() / labeled.cpu().sum()
             if self.model_name:
                 self.results['{}_accuracy'.format(self.model_name)] = correct.item()
-                self.results['{}_f1_macro'.format(self.model_name)] = f1_score(predicted.cpu(), targets.cpu(), average='macro')  
+                self.results['{}_balanced_accuracy'.format(self.model_name)]  = bacc
+                self.results['{}_f1_macro'.format(self.model_name)] = f1_score(targets.cpu(), predicted.cpu(), average='macro')  
             else:
                 self.results['accuracy']  = correct
+                self.results['balanced_accuracy']  = bacc
             self.losses.classifier = loss
         self.results.perc_labeled = labeled.mean().item()
 

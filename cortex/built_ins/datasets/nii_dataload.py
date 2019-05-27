@@ -104,9 +104,9 @@ class ImageFolder(data.Dataset):
         imgs (list): List of (image path, class_index) tuples
     '''
 
-    def __init__(self, root, loader=nii_loader, patterns=None, mask=None):
+    def __init__(self, root, loader=nii_loader, patterns=None, mask=None, transform=None):
         imgs = make_dataset(root, patterns)
-
+         self.transform = transform
         if len(imgs) == 0:
             raise (
                 RuntimeError(
@@ -154,7 +154,7 @@ class ImageFolder(data.Dataset):
 
         img = data_masked
 
-        return np.array(img)
+        return img
 
     '''
         Gives us a tuple from the array at (index) of: (image, label)
@@ -173,6 +173,9 @@ class ImageFolder(data.Dataset):
         img = self.loader(path)
         if self.mask:
             img = self.maskData(img)
+
+        if self.transform is not None:
+            img = self.transform(img)
 
         return np.array(img), label
 
