@@ -61,7 +61,10 @@ class ADNIPlugin(DatasetPlugin):
         data_path = self.get_path(source)
 
         train_path = path.join(data_path, 'train')
+
         test_path = path.join(data_path, 'test_adni')
+        test_path = path.join(data_path, 'val_adni')
+
 
         train_transform = transforms.Compose([
             transforms.Lambda(lambda x: zero_pad_center_crop(x)),
